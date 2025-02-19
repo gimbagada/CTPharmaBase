@@ -39,18 +39,28 @@ export const inventory = pgTable("inventory", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-  role: true
+// Insert schemas
+export const insertUserSchema = createInsertSchema(users);
+export const insertMedicationSchema = createInsertSchema(medications).omit({ 
+  id: true,
+  createdAt: true,
+  verifiedAt: true 
+});
+export const insertClaimSchema = createInsertSchema(insuranceClaims).omit({ 
+  id: true,
+  createdAt: true 
+});
+export const insertInventorySchema = createInsertSchema(inventory).omit({ 
+  id: true,
+  updatedAt: true 
 });
 
-export const insertMedicationSchema = createInsertSchema(medications);
-export const insertClaimSchema = createInsertSchema(insuranceClaims);
-export const insertInventorySchema = createInsertSchema(inventory);
-
+// Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Medication = typeof medications.$inferSelect;
 export type InsuranceClaim = typeof insuranceClaims.$inferSelect;
 export type Inventory = typeof inventory.$inferSelect;
+export type InsertMedication = z.infer<typeof insertMedicationSchema>;
+export type InsertClaim = z.infer<typeof insertClaimSchema>;
+export type InsertInventory = z.infer<typeof insertInventorySchema>;

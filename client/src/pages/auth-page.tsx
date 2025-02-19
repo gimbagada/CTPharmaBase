@@ -119,7 +119,7 @@ function RegisterForm() {
     defaultValues: {
       username: "",
       password: "",
-      role: "pharmacy"
+      role: "pharmacy" as const // Type assertion to match the enum
     }
   });
 
