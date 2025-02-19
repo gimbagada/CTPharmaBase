@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertClaimSchema } from "@shared/schema";
-import type { InsuranceClaim } from "@shared/schema";
+import type { InsuranceClaim, InsuranceProvider } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -15,21 +15,26 @@ import { Loader2 } from "lucide-react";
 export default function InsuranceClaims() {
   const { user } = useAuth();
   const { toast } = useToast();
-  
+
   const form = useForm({
     resolver: zodResolver(insertClaimSchema),
     defaultValues: {
       pharmacyId: user?.id || 0,
       medicationId: 0,
+      providerId: 0,
       patientName: "",
-      insuranceProvider: "",
+      policyNumber: "",
       claimAmount: 0,
-      status: "pending"
+      status: "pending" as const
     }
   });
 
   const { data: claims } = useQuery<InsuranceClaim[]>({
     queryKey: ["/api/claims"],
+  });
+
+  const { data: providers } = useQuery<InsuranceProvider[]>({
+    queryKey: ["/api/providers/active"],
   });
 
   const submitMutation = useMutation({
@@ -70,10 +75,32 @@ export default function InsuranceClaims() {
               />
               <FormField
                 control={form.control}
-                name="insuranceProvider"
+                name="providerId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Insurance Provider</FormLabel>
+                    <FormControl>
+                      <select 
+                        {...field} 
+                        className="w-full rounded-md border border-input bg-background px-3 py-2"
+                      >
+                        <option value="">Select provider</option>
+                        {providers?.map((provider) => (
+                          <option key={provider.id} value={provider.id}>
+                            {provider.name}
+                          </option>
+                        ))}
+                      </select>
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="policyNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Policy Number</FormLabel>
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
@@ -107,31 +134,34 @@ export default function InsuranceClaims() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {claims?.map((claim) => (
-              <div
-                key={claim.id}
-                className="flex items-center justify-between border p-4 rounded-lg"
-              >
-                <div>
-                  <h3 className="font-medium">{claim.patientName}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Provider: {claim.insuranceProvider}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    Amount: ₦{claim.claimAmount}
-                  </p>
+            {claims?.map((claim) => {
+              const provider = providers?.find(p => p.id === claim.providerId);
+              return (
+                <div
+                  key={claim.id}
+                  className="flex items-center justify-between border p-4 rounded-lg"
+                >
+                  <div>
+                    <h3 className="font-medium">{claim.patientName}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Provider: {provider?.name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Amount: ₦{claim.claimAmount}
+                    </p>
+                  </div>
+                  <div>
+                    <span className={`px-2 py-1 rounded-full text-sm ${
+                      claim.status === "approved" ? "bg-green-100 text-green-800" :
+                      claim.status === "rejected" ? "bg-red-100 text-red-800" :
+                      "bg-yellow-100 text-yellow-800"
+                    }`}>
+                      {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className={`px-2 py-1 rounded-full text-sm ${
-                    claim.status === "approved" ? "bg-green-100 text-green-800" :
-                    claim.status === "rejected" ? "bg-red-100 text-red-800" :
-                    "bg-yellow-100 text-yellow-800"
-                  }`}>
-                    {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
