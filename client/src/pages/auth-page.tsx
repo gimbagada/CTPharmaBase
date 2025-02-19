@@ -48,7 +48,7 @@ export default function AuthPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <div className="hidden lg:flex flex-1 bg-primary items-center justify-center text-primary-foreground">
         <div className="max-w-md text-center px-4">
           <h1 className="text-4xl font-bold mb-4">
@@ -119,7 +119,7 @@ function RegisterForm() {
     defaultValues: {
       username: "",
       password: "",
-      role: "pharmacy" as const // Type assertion to match the enum
+      role: "pharmacy" as const
     }
   });
 
