@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertMedicationSchema, insertClaimSchema, insertInventorySchema } from "@shared/schema";
+import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, insertProviderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -25,9 +25,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(medication);
   });
 
+  // Insurance Providers
+  app.get("/api/providers", async (req, res) => {
+    const providers = await storage.getProviders();
+    res.json(providers);
+  });
+
+  app.get("/api/providers/active", async (req, res) => {
+    const providers = await storage.getActiveProviders();
+    res.json(providers);
+  });
+
+  app.get("/api/providers/:id", async (req, res) => {
+    const provider = await storage.getProvider(parseInt(req.params.id));
+    if (!provider) {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+    res.json(provider);
+  });
+
+  app.post("/api/providers", async (req, res) => {
+    const data = insertProviderSchema.parse(req.body);
+    const provider = await storage.createProvider(data);
+    res.json(provider);
+  });
+
   // Insurance Claims
   app.get("/api/claims", async (req, res) => {
     const claims = await storage.getClaims();
+    res.json(claims);
+  });
+
+  app.get("/api/claims/provider/:providerId", async (req, res) => {
+    const claims = await storage.getClaimsByProvider(parseInt(req.params.providerId));
     res.json(claims);
   });
 

@@ -1,4 +1,4 @@
-import { users, medications, insuranceClaims, inventory, type User, type InsertUser, type Medication, type InsertMedication, type InsuranceClaim, type InsertClaim, type Inventory, type InsertInventory } from "@shared/schema";
+import { users, medications, insuranceClaims, inventory, insuranceProviders, type User, type InsertUser, type Medication, type InsertMedication, type InsuranceClaim, type InsertClaim, type Inventory, type InsertInventory, type InsuranceProvider, type InsertProvider } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import session from "express-session";
@@ -17,9 +17,16 @@ export interface IStorage {
   createMedication(medication: InsertMedication): Promise<Medication>;
   verifyMedication(id: number): Promise<Medication>;
 
+  // Insurance provider methods
+  getProviders(): Promise<InsuranceProvider[]>;
+  getProvider(id: number): Promise<InsuranceProvider | undefined>;
+  createProvider(provider: InsertProvider): Promise<InsuranceProvider>;
+  getActiveProviders(): Promise<InsuranceProvider[]>;
+
   // Insurance claims methods
   getClaims(): Promise<InsuranceClaim[]>;
   createClaim(claim: InsertClaim): Promise<InsuranceClaim>;
+  getClaimsByProvider(providerId: number): Promise<InsuranceClaim[]>;
 
   // Inventory methods
   getInventory(): Promise<Inventory[]>;
@@ -72,6 +79,24 @@ export class DatabaseStorage implements IStorage {
     return medication;
   }
 
+  async getProviders(): Promise<InsuranceProvider[]> {
+    return await db.select().from(insuranceProviders);
+  }
+
+  async getProvider(id: number): Promise<InsuranceProvider | undefined> {
+    const [provider] = await db.select().from(insuranceProviders).where(eq(insuranceProviders.id, id));
+    return provider;
+  }
+
+  async createProvider(provider: InsertProvider): Promise<InsuranceProvider> {
+    const [newProvider] = await db.insert(insuranceProviders).values(provider).returning();
+    return newProvider;
+  }
+
+  async getActiveProviders(): Promise<InsuranceProvider[]> {
+    return await db.select().from(insuranceProviders).where(eq(insuranceProviders.active, true));
+  }
+
   async getClaims(): Promise<InsuranceClaim[]> {
     return await db.select().from(insuranceClaims);
   }
@@ -79,6 +104,10 @@ export class DatabaseStorage implements IStorage {
   async createClaim(claim: InsertClaim): Promise<InsuranceClaim> {
     const [newClaim] = await db.insert(insuranceClaims).values(claim).returning();
     return newClaim;
+  }
+
+  async getClaimsByProvider(providerId: number): Promise<InsuranceClaim[]> {
+    return await db.select().from(insuranceClaims).where(eq(insuranceClaims.providerId, providerId));
   }
 
   async getInventory(): Promise<Inventory[]> {
