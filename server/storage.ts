@@ -1,6 +1,6 @@
-import { users, medications, insuranceClaims, inventory, insuranceProviders, type User, type InsertUser, type Medication, type InsertMedication, type InsuranceClaim, type InsertClaim, type Inventory, type InsertInventory, type InsuranceProvider, type InsertProvider } from "@shared/schema";
+import { users, medications, insuranceClaims, inventory, insuranceProviders, pharmacies, type User, type InsertUser, type Medication, type InsertMedication, type InsuranceClaim, type InsertClaim, type Inventory, type InsertInventory, type InsuranceProvider, type InsertProvider, type Pharmacy, type InsertPharmacy } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -11,6 +11,13 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+
+  // Pharmacy methods
+  getPharmacies(): Promise<Pharmacy[]>;
+  getPharmacy(id: number): Promise<Pharmacy | undefined>;
+  createPharmacy(pharmacy: InsertPharmacy): Promise<Pharmacy>;
+  searchPharmacies(lat: number, lng: number, radius: number): Promise<Pharmacy[]>;
+  getPharmacyInventory(pharmacyId: number): Promise<Inventory[]>;
 
   // Medication methods
   getMedications(): Promise<Medication[]>;
@@ -59,6 +66,63 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async getPharmacies(): Promise<Pharmacy[]> {
+    return await db.select().from(pharmacies);
+  }
+
+  async getPharmacy(id: number): Promise<Pharmacy | undefined> {
+    const [pharmacy] = await db.select().from(pharmacies).where(eq(pharmacies.id, id));
+    return pharmacy;
+  }
+
+  async createPharmacy(pharmacy: InsertPharmacy): Promise<Pharmacy> {
+    const [newPharmacy] = await db.insert(pharmacies).values(pharmacy).returning();
+    return newPharmacy;
+  }
+
+  async searchPharmacies(lat: number, lng: number, radius: number): Promise<Pharmacy[]> {
+    const haversine = sql`
+      6371 * 2 * ASIN(
+        SQRT(
+          POWER(SIN(RADIANS(${lat} - latitude) / 2), 2) +
+          COS(RADIANS(${lat})) * COS(RADIANS(latitude)) *
+          POWER(SIN(RADIANS(${lng} - longitude) / 2), 2)
+        )
+      )
+    `;
+
+    type PharmacyWithDistance = Pharmacy & { distance: number };
+
+    const results = await db
+      .select({
+        id: pharmacies.id,
+        name: pharmacies.name,
+        address: pharmacies.address,
+        city: pharmacies.city,
+        state: pharmacies.state,
+        zipCode: pharmacies.zipCode,
+        latitude: pharmacies.latitude,
+        longitude: pharmacies.longitude,
+        phone: pharmacies.phone,
+        operatingHours: pharmacies.operatingHours,
+        isActive: pharmacies.isActive,
+        createdAt: pharmacies.createdAt,
+        distance: haversine,
+      })
+      .from(pharmacies)
+      .where(sql`${haversine} <= ${radius}`)
+      .orderBy(haversine);
+
+    return results.map(({ distance, ...pharmacy }) => pharmacy as Pharmacy);
+  }
+
+  async getPharmacyInventory(pharmacyId: number): Promise<Inventory[]> {
+    return await db
+      .select()
+      .from(inventory)
+      .where(eq(inventory.pharmacyId, pharmacyId));
   }
 
   async getMedications(): Promise<Medication[]> {
