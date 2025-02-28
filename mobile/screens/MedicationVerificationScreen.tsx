@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { API_URL } from '../config';
+import { LoadingIndicator } from '../components/LoadingIndicator';
 
 type RootStackParamList = {
   MedicationVerification: undefined;
@@ -87,7 +88,10 @@ export default function MedicationVerificationScreen({ navigation }: Props) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <View style={styles.loadingContainer}>
+              <LoadingIndicator size={80} />
+              <Text style={styles.loadingText}>Verifying medication...</Text>
+            </View>
           ) : (
             <Text style={styles.buttonText}>Verify</Text>
           )}
@@ -200,5 +204,16 @@ const styles = StyleSheet.create({
   unverified: {
     backgroundColor: '#fee2e2',
     color: '#991b1b',
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 14,
+    color: '#2563eb',
+    fontWeight: '500',
   },
 });

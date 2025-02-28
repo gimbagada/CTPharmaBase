@@ -5,13 +5,14 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   FlatList,
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { API_URL, RETRY_ATTEMPTS, RETRY_DELAY } from '../config';
+import { LoadingScreen } from '../components/LoadingScreen';
+import { LoadingIndicator } from '../components/LoadingIndicator';
 
 type RootStackParamList = {
   Inventory: undefined;
@@ -85,13 +86,12 @@ export default function InventoryScreen({ navigation }: Props) {
 
   const fetchMedications = async () => {
     try {
-      // Try to get cached data first
       const cachedData = await AsyncStorage.getItem('medications');
       if (cachedData) {
         setMedications(JSON.parse(cachedData));
       }
 
-      const response = await retryFetch(() => 
+      const response = await retryFetch(() =>
         fetch(`${API_URL}/api/medications`, {
           credentials: 'include',
         })
@@ -109,7 +109,6 @@ export default function InventoryScreen({ navigation }: Props) {
 
   const fetchInventory = async () => {
     try {
-      // Try to get cached data first
       const cachedData = await AsyncStorage.getItem('inventory');
       if (cachedData) {
         setInventory(JSON.parse(cachedData));
@@ -165,7 +164,6 @@ export default function InventoryScreen({ navigation }: Props) {
     } catch (error) {
       Alert.alert('Error', 'Failed to update inventory. Changes will be synced when connection is restored.');
 
-      // Store pending updates locally
       const pendingUpdates = await AsyncStorage.getItem('pendingInventoryUpdates');
       const updates = pendingUpdates ? JSON.parse(pendingUpdates) : [];
       updates.push({
@@ -180,12 +178,16 @@ export default function InventoryScreen({ navigation }: Props) {
     }
   };
 
+  if (!medications.length && isLoading) {
+    return <LoadingScreen message="Loading inventory data..." />;
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.updateSection}>
         <Text style={styles.title}>Update Inventory</Text>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.select}
           onPress={() => {
             Alert.alert(
@@ -219,7 +221,7 @@ export default function InventoryScreen({ navigation }: Props) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color="#fff" />
+            <LoadingIndicator size={24} />
           ) : (
             <Text style={styles.buttonText}>Update Inventory</Text>
           )}
