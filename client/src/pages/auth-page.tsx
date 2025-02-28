@@ -74,9 +74,17 @@ function LoginForm() {
     }
   });
 
+  const onSubmit = async (data: { username: string; password: string }) => {
+    try {
+      await loginMutation.mutateAsync(data);
+    } catch (error) {
+      console.error("Login error:", error);
+    }
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4 mt-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
         <FormField
           control={form.control}
           name="username"
@@ -84,7 +92,7 @@ function LoginForm() {
             <FormItem>
               <FormLabel>Username</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} autoComplete="username" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -97,7 +105,7 @@ function LoginForm() {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <Input type="password" {...field} />
+                <Input type="password" {...field} autoComplete="current-password" />
               </FormControl>
               <FormMessage />
             </FormItem>
