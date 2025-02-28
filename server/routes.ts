@@ -2,14 +2,49 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, insertProviderSchema } from "@shared/schema";
+import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, insertProviderSchema, insertPharmacySchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  // Add health check endpoint for mobile app connectivity testing
+  // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.status(200).json({ status: "ok" });
+  });
+
+  // Pharmacy location endpoints
+  app.get("/api/pharmacies", async (req, res) => {
+    const pharmacies = await storage.getPharmacies();
+    res.json(pharmacies);
+  });
+
+  app.get("/api/pharmacies/search", async (req, res) => {
+    const { lat, lng, radius } = req.query;
+    const pharmacies = await storage.searchPharmacies(
+      parseFloat(lat as string),
+      parseFloat(lng as string),
+      parseFloat(radius as string)
+    );
+    res.json(pharmacies);
+  });
+
+  app.get("/api/pharmacies/:id", async (req, res) => {
+    const pharmacy = await storage.getPharmacy(parseInt(req.params.id));
+    if (!pharmacy) {
+      return res.status(404).json({ message: "Pharmacy not found" });
+    }
+    res.json(pharmacy);
+  });
+
+  app.get("/api/pharmacies/:id/inventory", async (req, res) => {
+    const inventory = await storage.getPharmacyInventory(parseInt(req.params.id));
+    res.json(inventory);
+  });
+
+  app.post("/api/pharmacies", async (req, res) => {
+    const data = insertPharmacySchema.parse(req.body);
+    const pharmacy = await storage.createPharmacy(data);
+    res.json(pharmacy);
   });
 
   // Medications

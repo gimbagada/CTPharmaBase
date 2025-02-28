@@ -1,6 +1,22 @@
-import { pgTable, text, serial, integer, boolean, timestamp, real, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, real, foreignKey, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Add pharmacy locations table
+export const pharmacies = pgTable("pharmacies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  latitude: decimal("latitude", { precision: 10, scale: 7 }).notNull(),
+  longitude: decimal("longitude", { precision: 10, scale: 7 }).notNull(),
+  phone: text("phone").notNull(),
+  operatingHours: text("operating_hours").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
 
 // Existing tables remain unchanged
 export const users = pgTable("users", {
@@ -21,7 +37,6 @@ export const medications = pgTable("medications", {
   verifiedAt: timestamp("verified_at")
 });
 
-// New insurance providers table
 export const insuranceProviders = pgTable("insurance_providers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
@@ -32,10 +47,9 @@ export const insuranceProviders = pgTable("insurance_providers", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
-// Updated insurance claims table with provider relation
 export const insuranceClaims = pgTable("insurance_claims", {
-  id: serial("id").primaryKey(), 
-  pharmacyId: integer("pharmacy_id").notNull(),
+  id: serial("id").primaryKey(),
+  pharmacyId: integer("pharmacy_id").notNull().references(() => pharmacies.id),
   medicationId: integer("medication_id").notNull(),
   providerId: integer("provider_id").notNull().references(() => insuranceProviders.id),
   patientName: text("patient_name").notNull(),
@@ -49,7 +63,7 @@ export const insuranceClaims = pgTable("insurance_claims", {
 
 export const inventory = pgTable("inventory", {
   id: serial("id").primaryKey(),
-  pharmacyId: integer("pharmacy_id").notNull(),
+  pharmacyId: integer("pharmacy_id").notNull().references(() => pharmacies.id),
   medicationId: integer("medication_id").notNull(),
   quantity: integer("quantity").notNull(),
   updatedAt: timestamp("updated_at").defaultNow()
@@ -57,6 +71,10 @@ export const inventory = pgTable("inventory", {
 
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users);
+export const insertPharmacySchema = createInsertSchema(pharmacies).omit({
+  id: true,
+  createdAt: true
+});
 export const insertMedicationSchema = createInsertSchema(medications).omit({ 
   id: true,
   createdAt: true,
@@ -80,6 +98,8 @@ export const insertInventorySchema = createInsertSchema(inventory).omit({
 // Types
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type Pharmacy = typeof pharmacies.$inferSelect;
+export type InsertPharmacy = z.infer<typeof insertPharmacySchema>;
 export type Medication = typeof medications.$inferSelect;
 export type InsuranceProvider = typeof insuranceProviders.$inferSelect;
 export type InsertProvider = z.infer<typeof insertProviderSchema>;

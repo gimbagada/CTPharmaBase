@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MedicationVerification from "@/components/dashboard/medication-verification";
 import InsuranceClaims from "@/components/dashboard/insurance-claims";
 import Inventory from "@/components/dashboard/inventory";
+import PharmacyFinder from "@/components/dashboard/pharmacy-finder";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 
@@ -36,6 +37,7 @@ export default function DashboardPage() {
             <TabsTrigger value="medications">Medication Verification</TabsTrigger>
             <TabsTrigger value="claims">Insurance Claims</TabsTrigger>
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="finder">Find Pharmacy</TabsTrigger>
           </TabsList>
 
           <TabsContent value="medications">
@@ -48,6 +50,10 @@ export default function DashboardPage() {
 
           <TabsContent value="inventory">
             <Inventory />
+          </TabsContent>
+
+          <TabsContent value="finder">
+            <PharmacyFinder />
           </TabsContent>
         </Tabs>
       </main>
