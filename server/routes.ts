@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { storage } from "./storage";
-import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, insertProviderSchema, insertPharmacySchema } from "@shared/schema";
+import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, insertProviderSchema, insertPharmacySchema, insertReminderSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
@@ -117,6 +117,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const data = insertInventorySchema.parse(req.body);
     const item = await storage.updateInventory(data);
     res.json(item);
+  });
+
+  // Medication Reminders
+  app.get("/api/reminders", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const reminders = await storage.getRemindersByUser(req.user.id);
+    res.json(reminders);
+  });
+
+  app.post("/api/reminders", async (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const data = insertReminderSchema.parse({ ...req.body, userId: req.user.id });
+    const reminder = await storage.createReminder(data);
+    res.json(reminder);
   });
 
   const httpServer = createServer(app);

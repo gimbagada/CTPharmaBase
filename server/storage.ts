@@ -4,6 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import { medicationReminders, type MedicationReminder, type InsertReminder } from "@shared/schema";
 
 const PostgresSessionStore = connectPg(session);
 
@@ -38,6 +39,11 @@ export interface IStorage {
   // Inventory methods
   getInventory(): Promise<Inventory[]>;
   updateInventory(item: InsertInventory): Promise<Inventory>;
+
+  // Reminder methods
+  getReminders(): Promise<MedicationReminder[]>;
+  createReminder(reminder: InsertReminder): Promise<MedicationReminder>;
+  getRemindersByUser(userId: number): Promise<MedicationReminder[]>;
 
   // Session store
   sessionStore: session.Store;
@@ -184,6 +190,22 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date()
     }).returning();
     return updatedItem;
+  }
+
+  async getReminders(): Promise<MedicationReminder[]> {
+    return await db.select().from(medicationReminders);
+  }
+
+  async createReminder(reminder: InsertReminder): Promise<MedicationReminder> {
+    const [newReminder] = await db.insert(medicationReminders).values(reminder).returning();
+    return newReminder;
+  }
+
+  async getRemindersByUser(userId: number): Promise<MedicationReminder[]> {
+    return await db
+      .select()
+      .from(medicationReminders)
+      .where(eq(medicationReminders.userId, userId));
   }
 }
 

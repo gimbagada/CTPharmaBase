@@ -7,6 +7,7 @@ import Inventory from "@/components/dashboard/inventory";
 import PharmacyFinder from "@/components/dashboard/pharmacy-finder";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import VoiceReminder from "@/components/dashboard/voice-reminder";
 
 export default function DashboardPage() {
   const { user, logoutMutation } = useAuth();
@@ -38,6 +39,7 @@ export default function DashboardPage() {
             <TabsTrigger value="claims">Insurance Claims</TabsTrigger>
             <TabsTrigger value="inventory">Inventory</TabsTrigger>
             <TabsTrigger value="finder">Find Pharmacy</TabsTrigger>
+            <TabsTrigger value="reminders">Medication Reminders</TabsTrigger>
           </TabsList>
 
           <TabsContent value="medications">
@@ -54,6 +56,9 @@ export default function DashboardPage() {
 
           <TabsContent value="finder">
             <PharmacyFinder />
+          </TabsContent>
+          <TabsContent value="reminders">
+            <VoiceReminder />
           </TabsContent>
         </Tabs>
       </main>

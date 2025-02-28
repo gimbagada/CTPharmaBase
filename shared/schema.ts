@@ -108,3 +108,24 @@ export type Inventory = typeof inventory.$inferSelect;
 export type InsertMedication = z.infer<typeof insertMedicationSchema>;
 export type InsertClaim = z.infer<typeof insertClaimSchema>;
 export type InsertInventory = z.infer<typeof insertInventorySchema>;
+
+// Add medication reminders table
+export const medicationReminders = pgTable("medication_reminders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  medicationId: integer("medication_id").notNull().references(() => medications.id),
+  reminderTime: text("reminder_time").notNull(), // Format: HH:mm
+  daysOfWeek: text("days_of_week").notNull(), // Format: 1,2,3,4,5,6,7
+  message: text("message").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Add reminder schema and types
+export const insertReminderSchema = createInsertSchema(medicationReminders).omit({
+  id: true,
+  createdAt: true
+});
+
+export type InsertReminder = z.infer<typeof insertReminderSchema>;
+export type MedicationReminder = typeof medicationReminders.$inferSelect;
