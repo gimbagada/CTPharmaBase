@@ -11,8 +11,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { API_URL, RETRY_ATTEMPTS, RETRY_DELAY } from '../config';
-import { LoadingScreen } from '../components/LoadingScreen';
-import { LoadingIndicator } from '../components/LoadingIndicator';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 type RootStackParamList = {
   Inventory: undefined;
@@ -179,7 +178,12 @@ export default function InventoryScreen({ navigation }: Props) {
   };
 
   if (!medications.length && isLoading) {
-    return <LoadingScreen message="Loading inventory data..." />;
+    return (
+      <View style={styles.loadingOverlay}>
+        <LoadingSpinner size={120} />
+        <Text style={styles.loadingText}>Loading inventory data...</Text>
+      </View>
+    );
   }
 
   return (
@@ -221,7 +225,9 @@ export default function InventoryScreen({ navigation }: Props) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <LoadingIndicator size={24} />
+            <View style={styles.buttonLoadingContainer}>
+              <LoadingSpinner size={50} color="#ffffff" />
+            </View>
           ) : (
             <Text style={styles.buttonText}>Update Inventory</Text>
           )}
@@ -345,5 +351,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'right',
+  },
+  fullscreenLoading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+    zIndex: 999,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 5,
+  },
+  buttonLoadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2563eb',
+    textAlign: 'center',
   },
 });

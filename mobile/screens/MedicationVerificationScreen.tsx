@@ -5,13 +5,12 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  ActivityIndicator,
   FlatList,
   Alert,
 } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { API_URL } from '../config';
-import { LoadingIndicator } from '../components/LoadingIndicator';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 type RootStackParamList = {
   MedicationVerification: undefined;
@@ -88,8 +87,8 @@ export default function MedicationVerificationScreen({ navigation }: Props) {
           disabled={isLoading}
         >
           {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <LoadingIndicator size={80} />
+            <View style={styles.loadingOverlay}>
+              <LoadingSpinner size={80} />
               <Text style={styles.loadingText}>Verifying medication...</Text>
             </View>
           ) : (
@@ -205,15 +204,21 @@ const styles = StyleSheet.create({
     backgroundColor: '#fee2e2',
     color: '#991b1b',
   },
-  loadingContainer: {
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    zIndex: 999,
   },
   loadingText: {
-    marginTop: 10,
-    fontSize: 14,
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
     color: '#2563eb',
-    fontWeight: '500',
   },
 });
