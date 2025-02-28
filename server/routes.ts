@@ -7,6 +7,11 @@ import { insertMedicationSchema, insertClaimSchema, insertInventorySchema, inser
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
+  // Add health check endpoint for mobile app connectivity testing
+  app.get("/api/health", (req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   // Medications
   app.get("/api/medications", async (req, res) => {
     const medications = await storage.getMedications();
