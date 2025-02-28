@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
-import Svg, { Path, Circle } from 'react-native-svg';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface LoadingIndicatorProps {
