@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertReminderSchema } from "@shared/schema";
@@ -12,7 +13,7 @@ import type { MedicationReminder, Medication } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Volume2 } from "lucide-react";
+import { Bell, Volume2, VolumeX } from "lucide-react";
 
 const DAYS_OF_WEEK = [
   { value: "1", label: "Monday" },
@@ -28,10 +29,28 @@ export default function VoiceReminder() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [speechSupported, setSpeechSupported] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [speaking, setSpeaking] = useState(false);
 
   useEffect(() => {
     // Check if browser supports speech synthesis
-    setSpeechSupported('speechSynthesis' in window);
+    const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+    setSpeechSupported(supported);
+
+    if (!supported) {
+      toast({
+        title: "Voice Reminders Limited",
+        description: "Your browser doesn't support voice synthesis. Some features may not work.",
+        variant: "destructive",
+      });
+    }
+
+    // Cancel any ongoing speech when component unmounts
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
   }, []);
 
   const form = useForm({
@@ -70,24 +89,47 @@ export default function VoiceReminder() {
   });
 
   const testVoice = (message: string) => {
-    if (!speechSupported) {
+    if (!speechSupported || speaking) return;
+
+    try {
+      setSpeaking(true);
+      const utterance = new SpeechSynthesisUtterance(message);
+      utterance.volume = volume;
+      utterance.onend = () => setSpeaking(false);
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        setSpeaking(false);
+        toast({
+          title: "Voice playback failed",
+          description: "Failed to play the reminder message. Please try again.",
+          variant: "destructive",
+        });
+      };
+      window.speechSynthesis.speak(utterance);
+    } catch (error) {
+      console.error('Speech synthesis error:', error);
+      setSpeaking(false);
       toast({
-        title: "Voice not supported",
-        description: "Your browser doesn't support voice synthesis",
+        title: "Voice playback failed",
+        description: "An error occurred while trying to play the message.",
         variant: "destructive",
       });
-      return;
     }
-
-    const utterance = new SpeechSynthesisUtterance(message);
-    window.speechSynthesis.speak(utterance);
   };
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Set Medication Reminder</CardTitle>
+          <CardTitle className="flex items-center justify-between">
+            <span>Set Medication Reminder</span>
+            {!speechSupported && (
+              <div className="flex items-center text-destructive text-sm">
+                <VolumeX className="h-4 w-4 mr-2" />
+                Voice not supported
+              </div>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -161,19 +203,33 @@ export default function VoiceReminder() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Reminder Message</FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input {...field} placeholder="Time to take your medication" />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => testVoice(field.value)}
-                        disabled={!speechSupported}
-                      >
-                        <Volume2 className="h-4 w-4" />
-                      </Button>
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <FormControl>
+                          <Input {...field} placeholder="Time to take your medication" />
+                        </FormControl>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => testVoice(field.value)}
+                          disabled={!speechSupported || speaking}
+                        >
+                          <Volume2 className={`h-4 w-4 ${speaking ? 'animate-pulse' : ''}`} />
+                        </Button>
+                      </div>
+                      {speechSupported && (
+                        <div className="flex items-center gap-4">
+                          <span className="text-sm text-muted-foreground">Volume:</span>
+                          <Slider
+                            defaultValue={[volume]}
+                            max={1}
+                            step={0.1}
+                            onValueChange={([value]) => setVolume(value)}
+                            className="w-[100px]"
+                          />
+                        </div>
+                      )}
                     </div>
                   </FormItem>
                 )}
@@ -218,9 +274,9 @@ export default function VoiceReminder() {
                     variant="ghost"
                     size="icon"
                     onClick={() => testVoice(reminder.message)}
-                    disabled={!speechSupported}
+                    disabled={!speechSupported || speaking}
                   >
-                    <Volume2 className="h-4 w-4" />
+                    <Volume2 className={`h-4 w-4 ${speaking ? 'animate-pulse' : ''}`} />
                   </Button>
                 </div>
               );
