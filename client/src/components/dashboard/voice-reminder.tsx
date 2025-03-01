@@ -29,26 +29,49 @@ export default function VoiceReminder() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [speechSupported, setSpeechSupported] = useState(false);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(0.8);
   const [speaking, setSpeaking] = useState(false);
+  const [synth, setSynth] = useState<SpeechSynthesis | null>(null);
 
   useEffect(() => {
-    // Check if browser supports speech synthesis
-    const supported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
-    setSpeechSupported(supported);
+    // Initialize speech synthesis
+    const initSpeech = () => {
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        const synthesis = window.speechSynthesis;
+        setSynth(synthesis);
+        setSpeechSupported(true);
 
-    if (!supported) {
-      toast({
-        title: "Voice Reminders Limited",
-        description: "Your browser doesn't support voice synthesis. Some features may not work.",
-        variant: "destructive",
-      });
-    }
+        // Test voice availability
+        const voices = synthesis.getVoices();
+        if (voices.length === 0) {
+          synthesis.addEventListener('voiceschanged', () => {
+            const updatedVoices = synthesis.getVoices();
+            if (updatedVoices.length === 0) {
+              setSpeechSupported(false);
+              toast({
+                title: "Voice Support Limited",
+                description: "No voice synthesis voices available. Voice playback may not work.",
+                variant: "destructive",
+              });
+            }
+          });
+        }
+      } else {
+        setSpeechSupported(false);
+        toast({
+          title: "Voice Support Unavailable",
+          description: "Your browser doesn't support voice synthesis. Please use a modern browser.",
+          variant: "destructive",
+        });
+      }
+    };
 
-    // Cancel any ongoing speech when component unmounts
+    initSpeech();
+
+    // Cleanup function
     return () => {
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
+      if (synth) {
+        synth.cancel();
       }
     };
   }, []);
@@ -89,13 +112,30 @@ export default function VoiceReminder() {
   });
 
   const testVoice = (message: string) => {
-    if (!speechSupported || speaking) return;
+    if (!speechSupported || !synth || speaking) return;
 
     try {
       setSpeaking(true);
+
+      // Cancel any ongoing speech
+      synth.cancel();
+
       const utterance = new SpeechSynthesisUtterance(message);
       utterance.volume = volume;
-      utterance.onend = () => setSpeaking(false);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+
+      // Select a good voice if available
+      const voices = synth.getVoices();
+      const englishVoice = voices.find(voice => voice.lang.startsWith('en-'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      utterance.onend = () => {
+        setSpeaking(false);
+      };
+
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
         setSpeaking(false);
@@ -105,7 +145,8 @@ export default function VoiceReminder() {
           variant: "destructive",
         });
       };
-      window.speechSynthesis.speak(utterance);
+
+      synth.speak(utterance);
     } catch (error) {
       console.error('Speech synthesis error:', error);
       setSpeaking(false);
@@ -115,6 +156,13 @@ export default function VoiceReminder() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleVolumeChange = (newVolume: number[]) => {
+    const vol = newVolume[0];
+    setVolume(vol);
+    // Test new volume with a short message
+    testVoice("Testing volume level");
   };
 
   return (
@@ -203,7 +251,7 @@ export default function VoiceReminder() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Reminder Message</FormLabel>
-                    <div className="space-y-2">
+                    <div className="space-y-4">
                       <div className="flex gap-2">
                         <FormControl>
                           <Input {...field} placeholder="Time to take your medication" />
@@ -219,15 +267,20 @@ export default function VoiceReminder() {
                         </Button>
                       </div>
                       {speechSupported && (
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm text-muted-foreground">Volume:</span>
-                          <Slider
-                            defaultValue={[volume]}
-                            max={1}
-                            step={0.1}
-                            onValueChange={([value]) => setVolume(value)}
-                            className="w-[100px]"
-                          />
+                        <div className="flex items-center gap-4 border rounded-md p-4">
+                          <Volume2 className="h-4 w-4 text-muted-foreground" />
+                          <div className="flex-1">
+                            <Slider
+                              value={[volume]}
+                              max={1}
+                              step={0.1}
+                              onValueCommit={handleVolumeChange}
+                              className="w-full"
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground min-w-[3ch]">
+                            {Math.round(volume * 100)}%
+                          </span>
                         </div>
                       )}
                     </div>
