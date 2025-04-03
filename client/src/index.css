@@ -2,12 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Customize base styles */
 @layer base {
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/* Optional: Add custom utility classes here */
+@layer components {
+  /* You can define reusable components here if needed */
 }
