@@ -1,5 +1,6 @@
-{pkgs}: {
+{ pkgs }: {
   deps = [
-    pkgs.postgresql
+    pkgs.nodejs_18
+    pkgs.nodePackages.npm
   ];
 }
